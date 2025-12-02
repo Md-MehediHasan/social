@@ -1,0 +1,58 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") 
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String      @id @default(cuid())
+  email     String      @unique
+  name      String?
+  image     String?
+
+  // FRIEND RELATIONSHIPS (Self-relation)
+  friends   Friend[]    @relation("UserFriends")
+  owner     Friend[]    @relation("owner")
+  // MESSAGES
+  messages  Message[]
+  rooms     Room[]    @relation("RoomParticipants")
+  createdAt DateTime @default(now())
+  
+}
+
+model Friend {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation("owner", fields: [userId], references: [id])
+  userId      String
+  friend      User     @relation("UserFriends",fields: [friendId], references: [id])
+  friendId    String
+
+  relationType String   // e.g. "friend", "requested", "blocked", etc.
+
+  createdAt DateTime @default(now())
+}
+
+model Room {
+  id           String     @id @default(cuid())
+  name         String?
+  participants User[]     @relation("RoomParticipants")  // ✅ array of user emails or ids
+  messages     Message[]
+
+  createdAt    DateTime    @default(now())
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+
+  text      String
+  sendingStatus String   @default("sent")
+  createdAt DateTime @default(now())
+}
